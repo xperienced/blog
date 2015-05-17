@@ -2,7 +2,8 @@
 
 title:            XPERIENCED
 locale:           en_US
-url:              http://xperienced.github.io/blog             
+baseurl:          /blog
+url:              http://xperienced.github.io/blog          
 
 
 # Jekyll configuration
