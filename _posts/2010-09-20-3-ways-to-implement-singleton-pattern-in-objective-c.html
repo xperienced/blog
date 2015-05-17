@@ -1,0 +1,115 @@
+---
+layout: post
+title: 3 ways to implement Singleton pattern in Objective-C
+date: 2010-09-20 12:00:10.000000000 +02:00
+categories:
+- iPhone
+tags:
+- development
+- howto
+- iphone
+- obj-c
+- patterns
+- singleton
+- sourcecode
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+  has_been_twittered: 'yes'
+  _wp_old_slug: ''
+  _aioseop_description: 3 different possibilities of implementing singleton pattern
+    in Objective-C that work best both in multi-threaded and single-threaded environments.
+
+---
+<p>Singleton pattern is used when you need to ensure that only one instance of a class can be instantiated and you need a global access to it. The most widely used implementation of this pattern in .NET is the following (from <a href="http://msdn.microsoft.com/en-us/library/ff650316.aspx">MSDN</a>):</p>
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/09/singleton.png"><img class="aligncenter size-full wp-image-188" title="singleton" src="{{ site.baseurl }}/assets/singleton.png" alt="Singleton class diagram" width="150" height="198" /></a></p>
+<p style="text-align: center;">
+{% highlight csharp %}public sealed class Singleton
+{
+   private static readonly Singleton instance = new Singleton();
+   private Singleton(){}
+
+   public static Singleton Instance
+   {
+      get { return instance; }
+   }
+}{% endhighlight %}
+<p>This implementation is the most trivial one, but works according to a definition of singleton and can be also used in multi-threaded scenarios. What are the options for Objective-C?</p>
+<p><!--more--><br />
+<a href="http://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/CocoaFundamentals/CocoaObjects/CocoaObjects.html">According to Apple</a> you should implement your singleton classes in the following way:</p>
+{% highlight objc %}static MyGizmoClass *sharedGizmoManager = nil;
+
++ (MyGizmoClass*)sharedManager
+{
+    if (sharedGizmoManager == nil) {
+        sharedGizmoManager = [[super allocWithZone:NULL] init];
+    }
+    return sharedGizmoManager;
+}
+
++ (id)allocWithZone:(NSZone *)zone
+{
+    return [[self sharedManager] retain];
+}
+
+- (id)copyWithZone:(NSZone *)zone
+{
+    return self;
+}
+
+- (id)retain
+{
+    return self;
+}
+
+- (NSUInteger)retainCount
+{
+    return NSUIntegerMax;  //denotes an object that cannot be released
+}
+
+- (void)release
+{
+    //do nothing
+}
+
+- (id)autorelease
+{
+    return self;
+}{% endhighlight %}
+<p>In most cases, if you are not building a library and you will not be exposing singleton class to external parties, you could even simply omit some of the methods (leaving only sharedManager  class method and a variable) and make this implementation a bit shorter.</p>
+<p>This implementation however might suffer in a multi-threaded environment when different threads will try to get an access to a singleton instance when it's not yet initialized. In multi-threaded environments we could just surround initialization code with <strong>@synchronized</strong>, like this:</p>
+{% highlight objc %}+ (MyGizmoClass*)sharedManager
+{
+	@synchronized(self) {
+    	if (sharedGizmoManager == nil) {
+       		sharedGizmoManager = [[super allocWithZone:NULL] init];
+      	}
+	}
+	return sharedGizmoManager;
+}{% endhighlight %}
+<p>Knowing the cost of synchronization every time instance is accessed we could optimize this code a bit using a known technique called <a href="http://en.wikipedia.org/wiki/Double-checked_locking">double checked locking</a>:</p>
+{% highlight objc %}+ (MyGizmoClass*)sharedManager
+{
+	if (sharedGizmoManager == nil) {
+		@synchronized(self) {
+    		if (sharedGizmoManager == nil) {
+       			sharedGizmoManager = [[super allocWithZone:NULL] init];
+      		}
+      	}
+	}
+	return sharedGizmoManager;
+}{% endhighlight %}
+<p>We are only synchronizing when instance is not yet initialized to ensure that only one thread will access initialization block. However <a href="http://www.aristeia.com/Papers/DDJ_Jul_Aug_2004_revised.pdf">some studies</a> show that this might not work as expected in Objective-C and it looks like even making sharedGizmodoManager variable a volatile won't help.</p>
+<p>After some research I have suddenly stumbled upon an interesting <a href="http://stackoverflow.com/questions/145154/what-does-your-objective-c-singleton-look-like">article</a> on stackoverflow and a nice idea brought by <a href="http://stackoverflow.com/users/6330/kendall-helmstetter-gelner">Kendall Helmstetter Gelner</a> of leveraging Obj-C runtime library functions to replace a thread-safe version of an accessor method with a simple one after singleton instance is initialized. The idea is that we are still using fully synchronized version of initialization as shown in a second example, but after sharedGizmoManager is initialized, we just need to replace an implementation with a simple one, that will just simply return our sharedGizmodoManager instance without doing any locks.</p>
+{% highlight objc %}//... after sharedGizmoManager is initialized
+Method origMethod = class_getClassMethod(self, @selector(sharedManager));
+Method newMethod = class_getClassMethod(self, @selector(simpleSharedManager));
+method_exchangeImplementations(origMethod, newMethod);
+// simpleSharedManager method that will be used instead of a synchronized one
++ (MyGizmodoClass*)simpleSharedManager {
+    return sharedGizmodoManager;
+}{% endhighlight %}
+<p>I like this idea a lot and it really encourages me to carefully read <a href="http://developer.apple.com/library/ios/#documentation/Cocoa/Reference/ObjCRuntimeRef/Reference/reference.html">Objective-C Runtime Reference</a>. I know this singleton implementation is much more complicated but if you are looking for an efficient singleton implementation that will work correctly in multi-threaded environments this one might be really interesting one. In most of the cases though I am pretty sure that non-thread safe one will work correctly and is the easiest to remember and implement.</p>
+<p>What are your thoughts, which implementation do you use in your iPhone / iPad / iOS applications / games?</p>

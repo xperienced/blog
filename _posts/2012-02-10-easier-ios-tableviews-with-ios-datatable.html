@@ -1,0 +1,42 @@
+---
+layout: post
+title: Easier iOS table views with ios-datatable
+date: 2012-02-10 18:00:24.000000000 +01:00
+categories:
+- idevblogaday
+- iPhone
+tags:
+- development
+- github
+- idevblogaday
+- obj-c
+- open source
+- sourcecode
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p>The <a href="https://github.com/xperienced/ios-datatable">project</a> that I recently started to build in my spare time aims to simplify building a data table based views using Cocoa framework. Everyone that has tried to build a view that resembles a built-in iPhone Settings app knows that it's not so easy, especially when you need to leverage a different UI controls inside your table cells like UISwitch, UISlider etc. Even if you know how to do it it's a very repetitive and boring task which most often also results in a low quality code. The project that I started to build is in its early stages at the moment, but it might be already useful for some of you so I decided to finally reveal some details about it.<!--more--></p>
+<p>For everyone interested I suggest to get the sources from the <a href="https://github.com/xperienced/ios-dataview">sample project</a> hosted on a github. This project references <a href="https://github.com/xperienced/ios-datatable">ios-datatable</a> project using a git submodule.</p>
+<h2>Download details</h2>
+{% highlight sh %}
+git clone git://github.com/xperienced/ios-dataview.git
+cd ios-dataview
+git submodule init
+git submodule update
+{% endhighlight %}
+<p>The result of running just a few lines of a code should be the following:</p>
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2012/02/Screen-shot-2012-02-09-at-10.07.05-PM.png"><img class="aligncenter size-medium wp-image-560" title="ios-datatable sample project screenshot" src="{{ site.baseurl }}/assets/Screen-shot-2012-02-09-at-10.07.05-PM-235x300.png" alt="ios-datatable screenshot" width="235" height="300" /></a></p>
+<p>Just to give you an idea how easy it is to build a slider cell, look at the following line of a code:</p>
+{% highlight objc %}XPSliderDataCell *cell4 = [[XPSliderDataCell alloc] initWithText:@"Sample slider" value:.5f];{% endhighlight %}
+<h2>More to come...</h2>
+<p>There is more than just displaying, the library will also support the following:</p>
+<ul>
+<li>2-way data binding - so you can bind your classes / properties to Data Cells and those properties will be displayed and updated by changes in data cell,</li>
+<li>Events through delegates and blocks - so you can react on changes in data cells.</li>
+</ul>
+<p>Let me know if you have any other requests and if you like the project or want to contribute - do let me know. Thanks!</p>

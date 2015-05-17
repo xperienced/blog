@@ -1,0 +1,42 @@
+---
+layout: post
+title: Building lite version in 5 easy steps
+date: 2011-08-25 21:02:19.000000000 +02:00
+categories:
+- iPhone
+- Others
+tags:
+- development
+- howto
+- iphone
+- lite
+- tutorial
+- xcode
+- xcode 4
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p>My new application will be released in the coming days and I plan to release it in two versions - paid and ad-supported free version.</p>
+<p>Here is how you can create your lite version in XCode 4 in five easy steps:<!--more--></p>
+<ol>
+<li>Duplicate your current target and rename it to something like <em><em>YourAppName Lite</em></em><a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/08/duplicate_target.png"><img class="size-full wp-image-396 aligncenter" title="duplicate_target" src="{{ site.baseurl }}/assets/duplicate_target.png" alt="XCode 4 duplicate target" width="450" height="263" /><br />
+</a></li>
+<li>In YourAppName Lite target go to Build Settings and change Product Name to <em><em>YourAppName Lite</em></em><a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/08/lite_version_product_name.png"><img class="aligncenter size-full wp-image-397" title="lite_version_product_name" src="{{ site.baseurl }}/assets/lite_version_product_name.png" alt="XCode 4 update product name" width="528" height="131" /><br />
+</a></li>
+<li>In <em>YourAppName Lite</em> target edit <strong>Other C Flags</strong> and for all available configurations add the following value <strong>-DLITE_VERSION=1</strong>. This setting will be later on used in your code for conditional compilation.<a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/08/lite_version_other_c.png"><img class="aligncenter size-full wp-image-398" title="lite_version_other_c" src="{{ site.baseurl }}/assets/lite_version_other_c.png" alt="XCode 4 update Other C flags to lite version" width="528" height="208" /><br />
+</a></li>
+<li>In <em>YourAppName Lite</em>target go to summary pane and change your "lite" application icon.<a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/08/lite_version_icon.png"><img class="aligncenter size-full wp-image-399" title="lite_version_icon" src="{{ site.baseurl }}/assets/lite_version_icon.png" alt="XCode 4 lite version icon" width="319" height="134" /><br />
+</a></li>
+<li>In your code whenever you want to execute code only for lite version do the following:
+{% highlight objc %}#ifdef LITE_VERSION
+AdWhirlView *adWhirlView = [AdWhirlView requestAdWhirlViewWithDelegate:self];
+adWhirlView.frame = CGRectMake(0, 480 - 50, 320, 50);
+[self.view addSubview:adWhirlView];
+#endif{% endhighlight %}
+</li>
+</ol>

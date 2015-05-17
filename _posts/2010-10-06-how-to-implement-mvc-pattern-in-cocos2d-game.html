@@ -1,0 +1,77 @@
+---
+layout: post
+title: How to implement MVC pattern in cocos2d game
+date: 2010-10-06 21:41:20.000000000 +02:00
+categories:
+- iPhone
+tags:
+- cocos2d
+- development
+- game development
+- howto
+- iphone
+- mvc
+- patterns
+- separation of concerns
+- singleton
+- tutorial
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+  _wp_old_slug: ''
+
+---
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/10/mvc1.png"><img class="size-medium wp-image-253 alignleft" title="mvc" src="{{ site.baseurl }}/assets/mvc1-300x136.png" alt="MVC pattern" width="300" height="136" /></a><a href="http://en.wikipedia.org/wiki/Model%E2%80%93View%E2%80%93Controller">Model-View-Controller (MVC)</a> is a widely adopted pattern for handling user interface interactions in web based applications. Web development stacks such as <a href="http://rubyonrails.org/">Ruby On Rails</a>, <a href="http://www.djangoproject.com/">Django</a> or <a href="http://www.asp.net/mvc">ASP.NET MVC</a> are different approaches to MVC in web development on different platforms, but all of them share the same main principle – separation of domain logic from the user interface. Separation of concerns (SoC) is one of the most important concepts in today software architecture – not digging down into details this concept states that a given problem involves different kinds of concerns, which should be separated in order to achieve better code reusability, robustness, adaptability and maintainability. All of those are important indicators of code / software quality.</p>
+<p><a href="http://www.cocos2d-iphone.org/">Cocos2d</a> isn’t build around a concept of MVC, but nothing prevents you from building your own MVC stack around Cocos2d in your game. There might be different approaches to this problem, in this blog post I will share with you how I have implemented MVC pattern in my game (which I hope to release soon).</p>
+<p><!--more--></p>
+<h2>Problem</h2>
+<p>Cocos2d classes such as CCSprite, CCLayer, CCScene are all subclasses of CCNode. The most naive implementation of a game in Cocos2d has the following processes operating with each other to implement game logic:</p>
+<ol>
+<li>CCScene is instantiated by application delegate,</li>
+<li>CCScene instantiates one or more CCLayer and add it as yours children,</li>
+<li>CCLayer instantiates one or more CCSprite,</li>
+<li>CCScene handles user input (touch events or accelerometer changes) and updates CCLayer / CCSprite properties (such as position) accordingly, or executes different CCAction to handle more complex object behaviors,</li>
+<li>CCScene runs a game loop to udpate CCLayer / CCSprite properties in discrete intervals of time (for example, 60 times per second).</li>
+</ol>
+<p>It looks very simple and it’s the easiest way to start implementing your game but sooner or later, when your game logic  grows, your code becomes more and more difficult to maintain. The problem with this approach is that CCScene is responsible for too many things – user interaction, application logic and presentation.</p>
+<h2>The model</h2>
+<p>MVC separates different view-related concerns into the following components:</p>
+<ul>
+<li>Model which is responsible for domain logic,</li>
+<li>View which is responsible for presentation,</li>
+<li>Controller which is responsible for handling user input.</li>
+</ul>
+<p>Let’s begin with a model. Model represents a game logic. I am building a platform game so I will keep my examples based on actual implementation. My model contains the following classes (just some of them):</p>
+<ul>
+<li>Player,
+<ul>
+<li>Contains properties such as: player position, player current velocity (in X / Y axes), etc.</li>
+<li>Contains methods that execute domain logic on a player, such as run, walk, jump, etc.</li>
+<li>Contains a method called update that is executed in a main game loop and is responsible for updating a player model in time.</li>
+</ul>
+</li>
+<li>Platform,
+<ul>
+<li>Contains properties such as: platform position, platform width, platform height, etc.</li>
+<li>Contains methods that execute domain logic on a platform, such as collapse,</li>
+<li>Contains a method called update that is executed in a main game loop and is responsible for updating a platform in time.</li>
+</ul>
+</li>
+<li>GameModel,
+<ul>
+<li>Contains properties that describe a world all other objects live in, such as current gravity,</li>
+<li>Contains methods that execute domain logic on a game model,</li>
+<li>Contains a method called update that is executed in a main game loop and is responsible for updating a game world properties but also trigger update on the other objects that live in a game world.</li>
+</ul>
+</li>
+</ul>
+<p>You may ask: isn’t it an unnecessary duplication of properties that you can normally find in CCSprite (such as position, width, height etc.)? I will say: yes and no. Yes, because it looks quite similar and no, because model is using different units than pixels which better reflect the reality of a real world – in a model I am using meters but you can also use inches or any others you prefer. Model is completely <strong>unaware</strong> of a rendering engine that you are going to use later on.</p>
+<h2>The view</h2>
+<p>According to MVC principle the view should be only responsible for a presentation. It’s actually the easiest part of MVC in cocos2d. If you have a model you can just render it by CCLayer using CCSprite or other Cocos2d classes. The benefit of having a model separated from a view is that you don’t need to map properties of a model directly to view properties, for example if your player is changing your position in X axis, but you want to keep it always 10 px from the left of a screen, instead of moving a player’s sprite you would just rather move a whole CCLayer instead. When rendering model objects into view you need to remember about the units, if you are using meters you should remember that you should convert it to pixels (if your case is the same as mine you will most probably have a constant meters to pixel ratio as I do). How does your model take the view? You can either pass it from the controller when a view is created or you can create a game model as a <a href="http://xperienced.com.pl/blog/3-ways-to-implement-singleton-pattern-in-objective-c">singleton</a> and access it using a static method.</p>
+<h2>The controller</h2>
+<p>The controller ties everything together and its main responsibility is a user input handling. Since I need to instantiate a model and a view somewhere I find it best to do it in a controller. I also implement my controller as a subclass of CCScene and I have my initial controller instantiated by my application delegate class. There is however one problem here – touches are handled by CCLayer class which in my approach is a view. Because I don’t want a view to be responsible for handling user input I need to pass a view a reference to a controller (not directly, but as a delegate) and execute controller method (through a delegate) from a touch handler in view. And that’s it – my controller is now fully responsible for handling a touch event from a view and modify a model accordingly (either by updating model properties or by executing model methods). After I modify a model, the view needs to be updated as well. I do it in my game loop, which is implemented by a controller. The responsibility of a controller is just to execute an update method on a view, and the the view will do the rest.</p>
+<h2>There is one more thing...</h2>
+<p>Game is usually not only about updating a view based on a model but what we also want to do is to play the music and sound effects. Since a controller is responsible for handling user interaction it knows the best when to play a music or sound. But this is not always the case. If the player falls down on a platform a controller doesn’t know about it because this is a part of a game logic which stays in model. Can we then play sounds from the model? Argh… noo, we shouldn’t do it because we would break a SoC principle. How then we should do it? I will keep it for my my next post but I bet you already have got pretty nice ideas, <strong>don’t you?</strong></p>

@@ -1,0 +1,25 @@
+---
+layout: post
+title: Symbolicate iOS crash report
+date: 2012-08-22 21:14:37.000000000 +02:00
+categories:
+- iPhone
+tags:
+- iphone
+- script
+- support
+- tool
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p>The following script will help when you're struggling with symbolicating crash report that you get from your customer <a href="https://gist.github.com/3428363">https://gist.github.com/3428363</a></p>
+<p>Just create a new folder, put your crash report & dSYM file there and then run the script with the first argument being a file name of your crash report:</p>
+{% highlight sh %}
+symbolicate_crash.sh YourApp.crash | more
+{% endhighlight %}
+<p>Tested on Mountain Lion & XCode 4.4!</p>

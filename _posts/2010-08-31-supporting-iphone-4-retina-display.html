@@ -1,0 +1,54 @@
+---
+layout: post
+title: Supporting iPhone 4 Retina display
+date: 2010-08-31 22:25:19.000000000 +02:00
+categories:
+- iPhone
+tags:
+- automation
+- development
+- howto
+- ios 4
+- iphone
+- python
+- retina
+- script
+- sourcecode
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: failed
+  _wp_old_slug: ''
+  _aioseop_description: Convert your Retina display images to low-res images without
+    a hassle using Python script.
+  twitter_failure_reason: Settings do not permit the auto-tweeting of old posts
+  twitter_failure_code: '400'
+  
+---
+<p>I don't have a new iPhone 4 yet, but I (and probably most of you) do want to support a new Retina display in your apps. In order for your apps to squeeze the most out of a new Apple device you would need to include a second set of all your images, which are twice the size of images from previous iPhone / iPod devices.</p>
+<p><!--more-->Fortunately, for developers, it's quite easy - you just need to prepare a high-res version of your images and append a file name with @2x, for example if your low-res image is named logo.png a high-res version should be named logo@2x.png. iOS4 should automatically pick up the one that is appropriate for your device.</p>
+<p>Pretty much clear, right? But... how can you ensure that your graphic designer doesn't screw things up ;) and provides you consistent images according to these requirements... I am a big fan of automating things and avoiding any repetitive, boring task that are error-prone. Instead I created a simple Python script that is looking for all high-res images in my folder and simply scale it down, simple huh? Not sure if it works cause I didn't have a chance to test it on a real device, but I am pretty sure it will work like a charm :) If you like this solution and it is working fine or you find any problems I would really appreciate if you send me a feedback in a comment. Thanks.</p>
+<p>Following is a source code, put it in any *.py file you like and chmod +x it to make it executable.</p>
+
+{% highlight python %}
+#!/usr/bin/python
+
+import Image
+import glob, os
+import re
+
+for infile in glob.glob("**/*@2x.png"):
+	m = re.search("^(.*)@2x\.(.*)$", infile)
+	file = m.group(1)
+	ext = m.group(2)
+
+	outfile = file + ".png"
+	print "Converting {0} to {1}".format(infile, outfile)
+
+	im = Image.open(infile)
+	width, height = im.size
+	resized = im.resize((width / 2, height / 2), Image.ANTIALIAS)
+	resized.save(outfile, "PNG")
+{% endhighlight %}

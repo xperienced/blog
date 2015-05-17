@@ -1,0 +1,34 @@
+---
+layout: post
+title: 5 top reasons for selecting MonoTouch over ObjectiveC
+date: 2011-03-14 23:54:38.000000000 +01:00
+categories:
+- ".NET"
+- idevblogaday
+- iPhone
+tags:
+- csharp
+- development
+- dotnet
+- idevblogaday
+- iphone
+- memory management
+- obj-c
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+  _wp_old_slug: 5-top-reasons-monotouch-over-objective
+
+---
+<p>In my last iDevBlogADay post about iPhone &amp; C# development I was exploring the option of  using C# language to build application for iOS. Such approach might be good for existing dotnet developers but also for people who would like to build application for iPhone and are not yet familiar with Objective C. Why it might be a good idea to learn C# instead of Objective C?</p>
+<ol>
+<li>C# has a true garbage collection. It simply means that you mostly spend your time implementing your application logic instead of "fighting" with retain / release /dealloc. If you are not familiar with iOS memory management I suggest you read my post about <a href="http://xperienced.com.pl/blog/5-most-important-rules-of-memory-management-in-obj-c">memory management</a>.</li>
+<li>Although it is not as wrist friendly as Python or other script languages, C# allows you to write code that is much more "compact" when you compare it to Objective C. Are you tired of writing method declaration in header file every time you just want to add another method to your class? In C# there is no header file. Do you feel that writing callback methods in Objective C could be simpler? Yes - it might be thanks to anonymous delegates or lambda expressions.I know about blocks in ObjC but IMHO delegates / lambdas looks much better to me.</li>
+<li>Rich .NET framework library and bindings to native iOS libraries. If anything is missing in iOS library you would probably find it in Mono Touch library. WCF services, Web Services, JSON, Sql Lite API - this is only a part of what you can benefit from using Mono Touch.</li>
+<li>Linq support - this is in my opinion a killer feature for all type of applications, especially those with complex business logic. If you don't know it - think about it as a SQL language in a strongly-typed language that allows you to query your data regardless your data provider. You can query your collections such as arrays, lists, dictionaries in the same way as you query your database or other data source provider. What's also interesting is that your queries are checked by compiler so if you make a typo compiler tell you before the error hits you in runtime.</li>
+<li>Generic support - although limited (due to dynamic code generation restrictions), it's quite useful to restrict the type of data your class can handle (for example what type of objects your collection can store).</li>
+</ol>
+<p>There is probably more that I haven't put on my list, but those are in my opinion the most important features that I would consider when choosing a technology for my future application. I started building my game some time ago using Cocos2D and pure Objective C and I am not going to switch at this point of time to MonoTouch - that's for sure. But if I had a new project - I would definitely give MonoTouch a try.</p>

@@ -1,0 +1,73 @@
+---
+layout: post
+title: 5 most important rules of memory management in Obj-C
+date: 2010-09-03 23:04:58.000000000 +02:00
+categories:
+- iPhone
+tags:
+- development
+- howto
+- iphone
+- memory management
+- obj-c
+- sourcecode
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+  has_been_twittered: 'yes'
+  _wp_old_slug: ''
+  _aioseop_description: Most common use cases and general rules of memory management
+    on iPhone / iPod Touch and iPad devices.
+    
+---
+<p>If you haven't been playing with Obj-C on iOS yet and came from a different world, like .NET, Java or any scripting languages there is a really BAD news for you - <a href="http://developer.apple.com/mac/library/documentation/cocoa/conceptual/GarbageCollection/Introduction.html#//apple_ref/doc/uid/TP30001223-CJBGIAGF">although it is available on Mac</a> (as of 10.5) <a href="http://en.wikipedia.org/wiki/Garbage_collection_(computer_science)">garbage collector</a> isn't supported on any iOS device. It's a known fact that running garbage collector takes some additional resources which are very limited on mobile devices when compared to desktop machines, that's why the decision to handle memory management via manual <a href="http://en.wikipedia.org/wiki/Reference_counting">reference counting</a> seems quite reasonable. Although it is possible to implement GC on a phone (Android does it!) it drains battery much more, memory consumption is bigger and application might sometimes lose its responsiveness when GC is doing its job.</p>
+<p><!--more-->I am not going to dive into low level details of memory management, as you will find a great <a href="http://developer.apple.com/mac/library/documentation/cocoa/conceptual/MemoryMgmt/MemoryMgmt.html">documentation</a> on Apple, but instead I want to show you some most common use cases and general rules of memory management on iPhone / iPod Touch and iPad devices.</p>
+<ol>
+<li>The most important rule is that you <strong>ONLY</strong> need to release objects that you own, meaning those ones that are allocated using "alloc". Every "alloc" should have a corresponding "release" otherwise a memory will leak.
+{% highlight objc %}
+NSString *text = [[NSString alloc] init];
+// do something with text
+[text release];
+{% endhighlight %}
+</li>
+<li>If you haven't created an object by your own using "alloc" it means that this object is an autoreleased object that will be later on released by auto release pool. You <strong>CANNOT</strong> release it as it would throw an error.
+{% highlight objc %}
+NSString *text = [[NSString stringWithString:@"Sample text"];
+// do something with text
+// object will be automatically released later on by auto release pool
+// [text release] would throw an error here
+{% endhighlight %}
+</li>
+<li>You need to retain objects that you don't own, otherwise they might be released when you still needs them. The easiest way to do this is by levaraging Objective-C properties.
+{% highlight objc %}
+// in your .h file
+@property (retain) NSString *text;
+
+// in your .m file
+@synthesize text;
+
+// assigning auto released object to propery will retain it
+self.text = [NSString stringWithString:@"Sample text"];
+{% endhighlight %}
+</li>
+<li>You need to perform a manual cleanup of all properties you retained or all variables in which you keep a reference to object you own in a dealloc method. The easiest way is to just assign nil to property - this will solve both a problem of releasing the previous value and assigning a property to nil.
+{% highlight objc %}
+// in your .m file
+- (void)dealloc {
+	self.text = nil;
+	[super dealloc];
+}
+{% endhighlight %}
+</li>
+<li>When you add an object to a collection, this collection takes an ownership of this object so you don't need to retain it by yourself. Collection relinquishes ownership when it is released.
+{% highlight objc %}
+NSMutableArray *array = [[NSMutableArray alloc] init];
+NSString *text = [NSString stringWithString:@"Sample text"];
+[array addObject:text]; // collection will retain a text
+[array release]; // text will be released
+{% endhighlight %}
+</li>
+</ol>
+<p>That's pretty much all, it takes some time to get used to it and it's not as simple as automatic memory management in garbage collector controlled environments. You need to be very careful, invalid memory handling will result in memory leaks or application crashes due to accessing deallocated objects.</p>

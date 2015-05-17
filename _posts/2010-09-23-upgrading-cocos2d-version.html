@@ -1,0 +1,67 @@
+---
+layout: post
+title: Upgrading cocos2d version
+date: 2010-09-23 21:46:00.000000000 +02:00
+categories:
+- iPhone
+tags:
+- cocos2d
+- development
+- howto
+- iphone
+- migration
+- tutorial
+- xcode
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+  has_been_twittered: 'yes'
+  _wp_old_slug: ''
+  _aioseop_description: Tutorial on how to upgrade your project to a new version of
+    cocos2d using XCode cross-project reference and building static libraries on demand.
+
+---
+<p>Some time ago I grabbed a latest version of <a href="http://www.cocos2d-iphone.org/download">cocos2d</a> from their website and created a project from scratch based on a standard cocos2d template. Today I realized it's a good time to upgrade it to a new version.</p>
+<p>There are some discussions around this topic and different solutions proposed, not all of which fulfill my requirements. I currently have all of my source code (together with cocos2d sources) under source control (SVN) and I use XCode - SVN integration.</p>
+<p>So what are my options for a migration:</p>
+<ol>
+<li>Grab new cocos2d sources, recreate a project from scratch and copy all existing resources to new location. Sounds a bit clumsy and I don't want to ruin my SVN repository.</li>
+<li>Compile cocos2d project separately and add resulted library as a static library reference. It's a much better idea, but since compiling to different CPU architectures requires different static libraries it's not something I like the most.</li>
+<li>Use XCode cross-project references and build static libraries on demand as described in a following post: <a href="http://www.clintharris.net/2009/iphone-app-shared-libraries/">http://www.clintharris.net/2009/iphone-app-shared-libraries/</a></li>
+</ol>
+<h2><!--more-->Cross-project references</h2>
+<p>I pick option #3 because I consider it as a best option in my scenario. I keep documenting what I am doing while applying these changes physically to my project and I hope that I won't miss anything.</p>
+<p>Here is my current project structure:</p>
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/09/project-structure.png"><img class="aligncenter size-full wp-image-207" title="project structure" src="{{ site.baseurl }}/assets/project-structure.png" alt="project structure" width="238" height="339" /></a></p>
+<ul>
+<li>cocos2d Sources - contains cocos2d sources that are created from cocos2d project template,</li>
+<li>...</li>
+<li>Classes - where my game logic resides,</li>
+<li>...</li>
+</ul>
+<p>First of all I need to remove my existing cocos2d Sources from my project &amp; SVN repository and replace it with a newest version. I am also going not to download the latest cocos2d sources from a website (like I previously did) but rather grab it directly from a github. This way I would be able to easily upgrade my cocos2d libraries later. I have all the source code on my SVN so I should be pretty much safe in case anything goes wrong.</p>
+<h2>Making the changes</h2>
+<ol>
+<li>First of all I need to get the latest version of cocos2d from a github and place it on my XCode Workspace folder.
+{% highlight bash %}$ git clone git://github.com/cocos2d/cocos2d-iphone.git{% endhighlight %}
+</li>
+<li>My new cocos2d sources are now in a XCode Workspace folder so I can remove the sources that are stored inside my project, I am doing it from XCode so my SVN repository will be notified by XCode that those files should be also removed from my repo.<br />
+<a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/09/remove-cocos2d-sources.png"><img class="aligncenter size-full wp-image-208" title="remove cocos2d sources" src="{{ site.baseurl }}/assets/remove-cocos2d-sources.png" alt="remove cocos2d sources" width="236" height="271" /></a></li>
+<li>I need to do the same for cocos2d libraries target,</li>
+<li>Following a <a href="http://www.clintharris.net/2009/iphone-app-shared-libraries/">post</a> of Clint Harris I need to perform plenty of changes to my current project setup,
+<ul>
+<li>Set a  Source Tree setting (COCOS2D_SRC) in my XCode preferences and point it to my cocos2d-iphone directory,</li>
+<li>Add a cocos2d-ios.xcodeproj to my solution, ensuring that Copy items checkbox is not checked (otherwise it will copy all the sources to my project which is something I would like to avoid),<a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/09/cocos2d-cross-referenced.png"><img class="aligncenter size-full wp-image-209" title="cocos2d cross-referenced" src="{{ site.baseurl }}/assets/cocos2d-cross-referenced.png" alt="cocos2d project cross-referenced" width="238" height="205" /></a></li>
+<li>Set cocos2d-ios.xcodeproj path type to be relative to COCOS2D_SRC setting I have set earlier,</li>
+<li>Configure my targets to have a direct dependency on cocos2d libraries from external project,</li>
+</ul>
+</li>
+<li>So far so good, but when I am trying to build a project it shows me plenty of errors,<a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/09/plenty-of-issues.png"><img class="aligncenter size-full wp-image-210" title="plenty of issues" src="{{ site.baseurl }}/assets/plenty-of-issues.png" alt="cocos2d plenty of issues" width="508" height="145" /></a></li>
+<li>Ok, the problem is that I forgot to tell XCode to search for cocos2d headers in a different location that was stored previously, a small change to my "User header search paths" setting to point it to my $(COCOS2D_SRC) setting and...</li>
+<li>Still the same... I am googling for a while and it turns out that there might be a problem with some characters in search paths, mine contains a <strong>whitespace </strong>which I suspect might be causing this problem. I am moving my cocos2d sources to a different location, rebuilding and...</li>
+<li>It's much better now, I still see a bunch of errors but this is something I expected from the very beginning - I need to update my code to conform to a new version of cocos2d and then commit everything I changed so far.</li>
+<li><em>Edit: after fixing some issues related mostly with some name changes I realized I have some issues with linking my target with static libraries; by dragging necessary libraries from cocos2d-ios.xcodeproject to my target &gt; Link Binary With Libraries I made it work.</em></li>
+</ol>
+<p>Wow, that wasn't as hard as I expected, but it wasn't as easy as I got used to in .NET. At least I have everything documented in case I need to do it once more. I hope it can be also helpful for you, if you find this short tutorial useful please leave your comment. If you need more details please reference <a href="http://www.clintharris.net/2009/iphone-app-shared-libraries/">this</a> very great tutorial by Clint.</p>

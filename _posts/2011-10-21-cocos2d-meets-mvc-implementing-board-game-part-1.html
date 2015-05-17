@@ -1,0 +1,107 @@
+---
+layout: post
+title: cocos2d meets MVC - Implementing simple board game part 1
+date: 2011-10-21 18:00:40.000000000 +02:00
+categories:
+- idevblogaday
+- iPhone
+tags:
+- cocos2d
+- development
+- howto
+- idevblogaday
+- iphone
+- mvc
+- obj-c
+- separation of concerns
+- sourcecode
+- tutorial
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p>This is a first part of a series of posts that aim to help to understand how we can build a game in cocos2d using MVC pattern (or its variation adapted to cocos2d programming model). This is a follow up post to the previous posts that I wrote some time ago so if you haven't read it before I suggest to at least read the <a title="How to implement MVC pattern in cocos2d game" href="http://xperienced.com.pl/blog/how-to-implement-mvc-pattern-in-cocos2d-game">first part</a> which explains a bit of a theory.</p>
+<h2>Scenario</h2>
+<p>We are going to build a simple "framework" for building board puzzle games. This framework will be used in my new game and its core functionalities are as follows:</p>
+<ol>
+<li>A game board is defined by a number of rows and columns, which may vary for different application levels.</li>
+<li>The game board stores game pieces, and each game board's space can contain only one game piece.</li>
+<li>The game board can be initialized with a number of "fixed" game pieces that cannot be moved by a player during the game.</li>
+<li>A toolbox is defined by a number of toolbox items that represents slots for movable game pieces.</li>
+<li>Toolbox item (slot) can contain many toolbox items of the same type.</li>
+<li>Game pieces can be moved from the toolbox item (slot) and put on the game board.</li>
+</ol>
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/10/screenshot_1.png"><img class="aligncenter size-medium wp-image-501" title="screenshot_1" src="{{ site.baseurl }}/assets/screenshot_1-300x157.png" alt="GameBoard example" width="300" height="157" /></a></p>
+<h2><!--more-->Basic concepts</h2>
+<p>From <a href="http://en.wikipedia.org/wiki/Model–view–controller">wikipedia</a>:</p>
+<p><em>The <strong>model</strong> manages the behaviour and data of the application domain, responds to requests for information about its state (usually from the view), and responds to instructions to change state (usually from the controller). In event-driven systems, the model notifies observers (usually views) when the information changes so that they can react.</em></p>
+<p><em>The <strong>view</strong> renders the model into a form suitable for interaction, typically a user interface element. Multiple views can exist for a single model for different purposes. A viewport typically has a one to one correspondence with a display surface and knows how to render to it.</em></p>
+<p><em>The <strong>controller</strong> receives user input and initiates a response by making calls on model objects. A controller accepts input from the user and instructs the model and a viewport to perform actions based on that input.</em></p>
+<p>Following the definition from wikipedia we can identify the following main classes (we will add the model later on):</p>
+<ol>
+<li><em>GameBoardView</em> that represents the main view of an application,</li>
+<li><em>GameBoardController</em> that represents a controller for <em>GameBoardView</em>.</li>
+</ol>
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/10/MVC-diagram2.jpg"><img class="aligncenter size-full wp-image-479" title="MVC diagram" src="{{ site.baseurl }}/assets/MVC-diagram2.jpg" alt="GameBoardController &amp; GameBoardView relationship" width="181" height="221" /></a></p>
+<p>Please notice that the solid line represents a direct association (controller holds a reference to the view), the dashed line is an indirect association (via observer). The indirect association will be used later on to implement touches.</p>
+<h2>Implementation</h2>
+<h3>Project structure</h3>
+<p>After creating a new project in XCode 4 based on a default cocos2d template we create the following groups:</p>
+<ol>
+<li>View - views &amp; controller classes (you can also divide it into two different groups but I like to keep it in the same place as those classes are tightly connected).</li>
+<li>Model - we will use it later for storing model classes.</li>
+</ol>
+<div><a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/10/MVC-Project-structure1.png"><img class="aligncenter size-full wp-image-482" title="MVC - Project structure" src="{{ site.baseurl }}/assets/MVC-Project-structure1.png" alt="MVC - project structure" width="260" height="225" /></a></div>
+<p>&nbsp;</p>
+<h3>GameBoardView implementation</h3>
+<p>We start with <em>GameBoardView</em> implementation. We make GameBoardView extend CCNode.</p>
+{% highlight objc %}@interface GameBoardView : CCNode {
+}{% endhighlight %}
+<p>Then we implement init method of GameBoardView and we do some drawing here to check if everything works fine.</p>
+{% highlight objc %}- (id)init {
+    if ((self = [super init])) {
+        // create and initialize a Label
+	CCLabelTTF *label = [CCLabelTTF labelWithString:@"Hello World from view" fontName:@"Marker Felt" fontSize:48];
+
+	// ask director the the window size
+	CGSize size = [[CCDirector sharedDirector] winSize];
+
+	// position the label on the center of the screen
+	label.position =  ccp( size.width /2 , size.height/2 );
+
+	// add the label as a child to this Layer
+	[self addChild: label];
+    }
+
+    return self;
+}{% endhighlight %}
+<h3>GameBoardController implementation</h3>
+<p>GameBoardController is responsible for initializing the view. It also holds a reference to GameBoardView for future needs.</p>
+{% highlight objc %}@interface GameBoardController : CCNode {
+    GameBoardView *view;
+}{% endhighlight %}
+<p>Because GameBoardController extends CCNode we can add GameBoardView as a child of GameBoardController.</p>
+{% highlight objc %}- (id)init {
+    if ((self = [super init])) {
+        view = [GameBoardView node];
+
+        [self addChild:view];
+    }
+
+    return self;
+}{% endhighlight %}
+<h3>Final modifications</h3>
+<p>We modify AppDelegate and we run our newly created controller:</p>
+{% highlight objc %}[[CCDirector sharedDirector] runWithScene: [GameBoardController node]];{% endhighlight %}
+<p>And here it is for now. When you run your project the effect should be quite similar to default cocos2d template behavior. The difference is that we created a part of MVC project skeleton ready to implement necessary application logic.</p>
+<h2>Next steps</h2>
+<p>The project structure at this point is ready to introduce more advanced concepts:</p>
+<ol>
+<li>Handling touches.</li>
+<li>Introducing model.</li>
+</ol>
+<div>If you are interested how I am going to approach it please follow my next #iDevBlogADay post in two weeks. Follow me <a href="http://twitter.com/bwilczyn">@bwilczyn</a> to get the latest updates and notification about a new post.</div>

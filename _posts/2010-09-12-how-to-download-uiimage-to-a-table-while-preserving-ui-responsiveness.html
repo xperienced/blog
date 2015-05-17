@@ -1,0 +1,18 @@
+---
+layout: post
+title: How to download UIImage to a table while preserving UI responsiveness
+date: 2010-09-12 17:16:04.000000000 +02:00
+categories:
+- iPhone
+- Others
+tags: []
+status: draft
+type: post
+published: false
+meta:
+  _edit_last: '2'
+
+---
+<p>I found an interesting article the other day that deals with downloading data from a website.</p>
+<p><a href="http://iphonedevelopment.blogspot.com/2010/05/downloading-images-for-table-without.html">http://iphonedevelopment.blogspot.com/2010/05/downloading-images-for-table-without.html</a></p>
+<p>A title of this post is quite misleading, and as few others pointed out, the NSURLConnection method that is being executed will internally spawn a thread (or take it from a thread pool) and perform a network operation on a background thread.</p>

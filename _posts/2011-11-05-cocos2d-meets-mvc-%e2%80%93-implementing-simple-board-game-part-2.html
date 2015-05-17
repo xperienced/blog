@@ -1,0 +1,137 @@
+---
+layout: post
+title: cocos2d meets MVC – Implementing simple board game part 2
+date: 2011-11-05 00:19:41.000000000 +01:00
+categories:
+- idevblogaday
+- iPhone
+tags:
+- cocos2d
+- development
+- howto
+- idevblogaday
+- iphone
+- mvc
+- obj-c
+- separation of concerns
+- sourcecode
+- tutorial
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p>In the first part of the <a title="cocos2d meets MVC – Implementing simple board game part 1" href="http://xperienced.com.pl/blog/cocos2d-meets-mvc-implementing-board-game-part-1">cocos2d meets MVC</a> series I described how to start implementing MVC paradigm for cocos2d based board game. The first post only scratched the surface, we have prepared a skeleton but we still have a lot to do.</p>
+<h2>Introducing model</h2>
+<p>In the previous part we introduced the View and the Controller. To comply with MVC paradigm we need to add a model which will represent the current state of a game board. Our implementation now should contain the following classes:</p>
+<ol>
+<li><em>GameBoardView</em> - the View,</li>
+<li><em>GameBoardController</em> - the Controller.</li>
+<li><strong>GameBoard - the Model.</strong></li>
+</ol>
+<h2><a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/11/MVC-diagram-introduced-model.jpg"><img class="aligncenter size-medium wp-image-523" title="MVC diagram - introduced model" src="{{ site.baseurl }}/assets/MVC-diagram-introduced-model-300x194.jpg" alt="MVC diagram - introduced model" width="300" height="194" /></a></h2>
+<h2><!--more-->Model implementation</h2>
+<h3>GameBoard implementation</h3>
+<p>Our requirement (described in the first part) is that:</p>
+<p><em>...A game board is defined by a number of rows and columns, which may vary for different application levels.</em></p>
+<p>We implement it in the following way:</p>
+{% highlight objc %}@interface GameBoard : NSObject {
+    NSInteger numberOfRows;
+    NSInteger numberOfColumns;
+}
+
+- (id)initWithRows:(NSInteger)aNumberOfRows columns:(NSInteger)aNumberOfColumns;
+
+@property (nonatomic) NSInteger numberOfRows;
+@property (nonatomic) NSInteger numberOfColumns;
+
+@end{% endhighlight %}
+<p>Please notice that the model extends NSObject - the model should contain just the state of a game board (and the methods to update this state) - we shouldn't put any view related concerns here.</p>
+<h3>GameBoardView implementation</h3>
+<p>We need to modify the View and pass it the Model, we do this in initWithGameBoard method.</p>
+{% highlight objc %}@interface GameBoardView : CCNode {
+    GameBoard *gameBoard;
+}
+
+@property (nonatomic, retain) GameBoard *gameBoard;
+
+- (id)initWithGameBoard:(GameBoard *)aGameBoard;
+
+@end{% endhighlight %}
+<p>Our implementation of a GameBoardView can look like this (rendering game board spaces omitted to simplify the code):</p>
+{% highlight objc %}- (id)initWithGameBoard:(GameBoard *)aGameBoard {
+    if ((self = [super init])) {
+        // retain gameboard
+        self.gameBoard = aGameBoard;
+
+        // render gameboard background
+        CCSprite *gameboardSprite = [CCSprite spriteWithFile:@"gameboard.png"];
+        gameboardSprite.anchorPoint = CGPointMake(0, 0);
+
+        [self addChild:gameboardSprite];
+
+        // render spaces
+        for (int i = 0; i &lt; gameBoard.numberOfRows; i++) {
+            for (int j = 0; j &lt; gameBoard.numberOfColumns; j++) {
+                // position and render game board spaces
+            }
+        }
+    }
+
+    return self;
+}{% endhighlight %}
+<h3>GameBoardController</h3>
+<p>Finally the implementation of an init method in the Controller should be updated - the View needs to have the GameBoard model injected in its init method so we construct the game board in Controller (just for now) and pass it to the View (later on we will create a game board based on a level definition).</p>
+{% highlight objc %}- (id)init {
+    if ((self = [super init])) {
+        // initialize model
+        gameBoard = [[GameBoard alloc] initWithRows:7 columns:9];
+
+        // initialize view
+        view = [[GameBoardView alloc] initWithGameBoard:gameBoard];
+
+        [self addChild:view];
+    }
+
+    return self;
+}{% endhighlight %}
+<h2>Handling touches</h2>
+<h3>GameBoardView updates</h3>
+<p>In order to handle touches we need to slightly modify the View. We make it extend CCLayer instead of CCNode to have a possibility to handle touch events inside of it:</p>
+{% highlight objc %}@interface GameBoardView : CCLayer {
+...
+}{% endhighlight %}
+<p>The View itself should not be responsible for handling the actions that are results of user interaction with the game board so we will pass it to the Controller using protocol.</p>
+{% highlight objc %}@protocol GameBoardViewDelegate
+- (void)gameBoard:(GameBoard *)gameBoard touchedAtRow:(int)row column:(int)column;
+@end{% endhighlight %}
+<p>We also modify the init method of a GameBoardView so we can pass a delegate object that will be responsible for handling the touches:</p>
+{% highlight objc %}- (id)initWithGameBoard:(GameBoard *)aGameBoard delegate:(id)aDelegate;{% endhighlight %}
+<p>And the implementation is:</p>
+{% highlight objc %}- (void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+    UITouch *touch = [touches anyObject];
+    CGPoint point = [self convertTouchToNodeSpace:touch];
+
+    // calculate row and column touched by the user and call a delegate method
+    // ...
+    [self.delegate gameBoard:self.gameBoard touchedAtRow:row column:column];
+}{% endhighlight %}
+<h3>GameBoardController updates</h3>
+<p>GameBoardController will be responsible for handling user touches, so we need to implement a GameBoardViewDelegate in a GameBoardController:</p>
+{% highlight objc %}@interface GameBoardController : CCNode{% endhighlight %}
+{% highlight objc %}- (void)gameBoard:(GameBoard *)gameBoard touchedAtRow:(int)row column:(int)column {
+    // do the game logic here and update view accordingly
+}{% endhighlight %}
+<p>The last step is to modify the View initialization in the following way (in init method):</p>
+{% highlight objc %}// initialize view
+view = [[GameBoardView alloc] initWithGameBoard:gameBoard delegate:self];{% endhighlight %}
+<h2>Summary</h2>
+<p>In this part we implemented the Model and we did the necessary steps to make it visible to the View and to Controller. We also setup an indirect link between the View and the Controller so if the user touches the space on a game board the Controller will be able to handle the action according to game rules. The next part will cover:</p>
+<ul>
+<li>Updating the Model inside the Controller,</li>
+<li>Notifying the View about the changes in the Model.</li>
+</ul>
+<div>If you have any questions or remarks feel free to leave a comment after this post.</div>

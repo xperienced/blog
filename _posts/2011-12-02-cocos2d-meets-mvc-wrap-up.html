@@ -1,0 +1,50 @@
+---
+layout: post
+title: cocos2d meets MVC - wrap up
+date: 2011-12-02 21:04:22.000000000 +01:00
+categories:
+- idevblogaday
+- iPhone
+tags:
+- cocos2d
+- development
+- howto
+- idevblogaday
+- iphone
+- mvc
+- patterns
+- separation of concerns
+- tutorial
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p>This post is going to be short. If you have any questions regarding the previous parts or something is unclear please let me know. I have some contract projects going on (which going to be HUGE!!!) so not so much time for blogging. To wrap up the previous parts:</p>
+<ol>
+<li>We implemented the Model which helps us encapsulate the logic of a game that is not polluted with other concerns (like display),</li>
+<li>We implemented the Controller that handles the user interaction (and updates the model),</li>
+<li>We implemented the View which responsibility is ONLY to display the current state of a model.</li>
+</ol>
+<div>The interaction between the components is the following:</div>
+<div>
+<ol>
+<li>The Controller starts the Model and the View,</li>
+<li>The View displays the Model,</li>
+<li>The View responds to user touches and passes (using delegate) the event to the Controller,</li>
+<li>The Controller implements view delegate and reacts by calling the Model,</li>
+<li>The Model performs some game logic and notifies the View that its state has changed,</li>
+<li>The View updates its objects (like sprites) according to the current state of the Model.</li>
+</ol>
+<div>Open questions:</div>
+<div>
+<ol>
+<li>If you were going to implement an "Undo" functionality using NSUndoManager, where would you put your undo calls?</li>
+<li>How would you store the state of your current scene?</li>
+<li>Others?</li>
+</ol>
+</div>
+</div>

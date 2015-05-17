@@ -1,0 +1,103 @@
+---
+layout: post
+title: How to preload your game assets in loading scene
+date: 2010-09-12 21:23:01.000000000 +02:00
+categories:
+- iPhone
+tags:
+- assets
+- cocos2d
+- development
+- game
+- howto
+- iphone
+- patterns
+- preloading
+- resources
+- tutorial
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+  has_been_twittered: 'yes'
+  _wp_old_slug: ''
+
+---
+<p>If you are building a game for an iPhone then most probably, at some point of time, you will realize that you need a loading screen in which some (or even all) of your game assets should be preloaded. If you are not going to preload it but rather load it on demand, then you might experience some performance issues when a resource is initially loaded.</p>
+<p><!--more-->For my game I am using a <a title="cocos2d" href="http://www.cocos2d-iphone.org/">cocos2d</a> framework which has some convenient methods for preloading both textures and sounds, those are:</p>
+{% highlight objc %}[[CCTextureCache sharedTextureCache] addImage:path]{% endhighlight %}
+<p>for textures, and:</p>
+{% highlight objc %}[[SimpleAudioEngine sharedEngine] preloadEffect:path]{% endhighlight %}
+<p>for sounds, if you are using SimpleAudioEngine from CocosDenshion.<br />
+A requirement for my game was to preload all of my game resources from an application bundle automatically during a loading screen and display a progress of assets preloading. A solution that I came up with was the following.</p>
+<h2>@protocol ResourceLoader</h2>
+<p>First of all, as described earlier, we have two different methods of preloading textures and sounds and our ResourceLoader should be generic enough to handle not only those two specific cases but also any others so it could be used also with other game frameworks. <strong>ResourceLoader</strong> specifies a contract that specific classes should implement, this is also an extension point for a custom implementations, for example if you are leveraging a different framework than cocos2d or have a custom requirements for loading your assets.</p>
+{% highlight objc %}@protocol ResourceLoader
+- (void)loadResource:(NSString*)path;
+@end{% endhighlight %}
+<p>By default, I provided two custom implementation classes:</p>
+<ol>
+<li>TextureLoader - for loading textures using <strong>cocos2d</strong>,</li>
+<li>SoundLoader - for loading sound effects using <strong>CocosDenshion</strong>,</li>
+</ol>
+<p>We need to do some tricks with OpenGL context in <strong>TextureLoader</strong> - we will be later on executing those methods from a non-UI thread and we need to ensure that we are loading textures into the main GL context.</p>
+<h2>@interface ResourcesLoader</h2>
+<p><strong>ResourceLoader</strong> is a main component that we will use to load resources asynchronously during a loading screen.</p>
+{% highlight objc %}@interface ResourcesLoader
+@property (nonatomic, retain) NSMutableSet *resources;
+@property (nonatomic, retain) NSDictionary *loaders;
+
++ (id)sharedLoader;
+- (void)addResources:(id)firstResource, ... NS_REQUIRES_NIL_TERMINATION;
+- (void)loadResources:(id)delegate;
+
+@end{% endhighlight %}
+<p>and a delegate that will inform us of a progress change:</p>
+{% highlight objc %}@protocol ResourceLoaderDelegate
+- (void)didReachProgressMark:(CGFloat)progressPercentage;
+@end{% endhighlight %}
+<h2>Implementation</h2>
+<p>Implementation is itself quite trivial. First of all we need to register our custom resource loaders in <strong>ResourceLoader</strong>:</p>
+{% highlight objc %}self.loaders = [NSDictionary dictionaryWithObjectsAndKeys:
+[TextureLoader loader], @"png",
+[SoundEffectLoader loader], @"wav", nil];{% endhighlight %}
+<p>Then, we need to simply iterate over resources list, and for each resource find a registered loader (by resource extension) and execute its loadResource method. Wrapping resource loading in <a href="http://developer.apple.com/library/ios/documentation/Cocoa/Reference/NSBlockOperation_class/Reference/Reference.html">NSBlockOperation</a> will allow us to execute it on a <a href="http://developer.apple.com/library/ios/#documentation/Cocoa/Reference/NSOperationQueue_class/Reference/Reference.html">NSOperationQueue</a> in a background.</p>
+{% highlight objc %}for (NSString *resource in self.resources) {
+	NSBlockOperation *operation = [NSBlockOperation blockOperationWithBlock:^{
+		NSString *key = [resource pathExtension];
+		id loader = [self.loaders objectForKey:key];
+		[loader loadResource:resource];
+	...
+	}];
+}{% endhighlight %}
+<p>When a resource is loaded we need to notify a delegate that a loading progress has changed (we need to do it on a main thread):</p>
+{% highlight objc %}float progress = (float)_loadedResources / [self.resources count];
+[[NSThread mainThread] performBlock:^ {
+	[delegate didReachProgressMark:progress];
+} waitUntilDone:NO];{% endhighlight %}
+<h2>Usage</h2>
+<p>That's the easiest part, just put the following in your loading scene init method to initialize a loader with resources:</p>
+{% highlight objc %}// load resources
+ResourcesLoader *loader = [ResourcesLoader sharedLoader];
+NSArray *extensions = [NSArray arrayWithObjects:@"png", @"wav", nil];
+
+for (NSString *extension in extensions) {
+	NSArray *paths = [[NSBundle mainBundle] pathsForResourcesOfType:extension inDirectory:nil];
+	for (NSString *filename in paths) {
+		filename = [[filename componentsSeparatedByString:@"/"] lastObject];
+		[loader addResources:filename, nil];
+	}
+}
+
+// load it async
+[loader loadResources:self];{% endhighlight %}
+<p>and implement a delegate method:</p>
+{% highlight objc %}- (void) didReachProgressMark:(CGFloat)progressPercentage {
+	[_progress setPercentage:progressPercentage * 100];
+
+	if (progressPercentage == 1.0f) {
+		[_loadingLabel setString:@"Loading complete"];
+	}
+}{% endhighlight %}
+<p>And THAT'S IT, if you are looking for a source code, then you can find a complete XCode project attached <a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/09/ResourceLoader.zip">here</a>.</p>

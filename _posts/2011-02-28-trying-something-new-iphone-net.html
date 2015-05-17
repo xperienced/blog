@@ -1,0 +1,45 @@
+---
+layout: post
+title: Trying something new - iPhone & .NET
+date: 2011-02-28 11:00:07.000000000 +01:00
+categories:
+- ".NET"
+- idevblogaday
+- iPhone
+- Others
+tags:
+- csharp
+- development
+- dotnet
+- idevblogaday
+- iphone
+- monotouch
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p>I was waiting for my first post on <a href="http://idevblogaday.com/">iDevBlogADay</a> for quite a long time. I signed on in September so it was about half of a year of waiting for my turn. I must admit - frequency of my blog posting has significantly dropped recently and my last blog post is from beginning of January. This is mostly due to my involvement in a current .NET project I am in and my concerns are more towards LOB applications rather than iPhone games at the moment. My iPhone game that I started about half year ago is not finished yet and I hope it will not end on my projects' graveyard.</p>
+<p>Due to the lack of current iPhone related developments recently I decided I will try something new for this idevblogaday posting. When I was starting my journey with iPhone development I had over 7 years of professional experience in .NET development. Learning Obj-C was a great fun and a challenge for me but what I found is that I am a LOT less productive in Obj-C than I am in C# on .NET platform. I believe it is mostly due to the following:</p>
+<ol>
+<li>I have much more professional experience in .NET, I wrote already tons of code in C# for many projects (mostly LOB applications), I have several certificates in MS technology which proves I know this technology by heart ;)</li>
+<li>C# &amp; VS.NET is in my opinion much more modern and productive platform than Obj-C &amp; XCode.</li>
+</ol>
+<p>When I started learning Obj-C I heard about <a href="http://monotouch.net/">MonoTouch</a> which allows developers to write C# code and reuse both iOS library and .NET to build applications for iPhone / iPod &amp; iPads. Doesn't sound great for all of you .NET folks? Where is the catch then? You probably heard about mono project - a free cross-platform .NET development platform for Linux, Mac &amp; Windows. Unfortunately MonoTouch doesn't come for free - you need to pay at least 299$ for a commercial license. When you sum it up with 99$ for Apple developer license you might be a bit worried that it is a bit to much considering the fact that the application that you are building might not necessary need to be a success story like Angry Birds.</p>
+<p>But... nothing prevents you from just trying it - it is for free and the only limitation is that you can run your applications only on iPhone simulator (there is currently no time limit for evaluation). For my planned 10 weeks #idevblogaday posting I would like to share with you some of my experiences with this technology and I hope that after a while you will be able to decide yourself whether this technology is worth paying some money or not. I haven't yet decided so this is also a great opportunity for me.</p>
+<p>How to start? It's quite easy - follow these <a href="http://monotouch.net/DownloadTrial">installation steps</a> from official product page and you will have MonoDevelop IDE installed and ready for your iPhone .NET development. When you have a working environment you can enjoy C# syntax and .NET library on your own. The example I built asynchronously invokes Web Service to convert Celsius to Fahrenheit and then updates UI accordingly - all done in few lines of code.</p>
+{% highlight csharp %}var convert = new www.w3schools.com.TempConvert();
+convert.CelsiusToFahrenheitCompleted += (sender, e) =&gt;
+{
+    InvokeOnMainThread(() =&gt; { lblFahrenheit.Text = e.Result; });
+};
+
+btnConvert.TouchDown += (sender, e) =&gt;
+{
+    convert.CelsiusToFahrenheitAsync(txtCelsius.Text);
+};{% endhighlight %}
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2011/02/Screen-shot-2011-02-27-at-8.17.33-PM.png"><img class="size-full wp-image-371 alignnone" title="Celsius to Fahrenheit convert in MonoTouch" src="{{ site.baseurl }}/assets/Screen-shot-2011-02-27-at-8.17.33-PM.png" alt="Celsius to Fahrenheit convert in MonoTouch" width="331" height="494" /></a><br />
+Please notice - syntax supports C# 3.0 lambda expressions and... LINQ. More on that in my next blog post that should come in 2 weeks. By then I should have more experiences with MonoTouch to share.</p>

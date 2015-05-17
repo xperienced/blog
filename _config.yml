@@ -1,14 +1,15 @@
 # Site wide configuration
 
-title:            Site Title
+title:            XPERIENCED
 locale:           en_US
-url:              
+# url:              http://xperienced.com.pl/blog             
 
 
 # Jekyll configuration
 
-permalink:   /:categories/:title/
+permalink:   /:title
 markdown:    kramdown
+excerpt_separator: <!--more-->
 highlighter: pygments
 sass:
   sass_dir: _sass
@@ -26,23 +27,22 @@ kramdown:
 
 # Site owner
 owner:
-  name: Your Name
-  avatar: bio-photo.jpg
-  bio: "Describe your self."
-  email: 
-  disqus-shortname: 
-  twitter: #username
-  facebook: #username
+  name: Bartek Wilczynski
+  web: http://xperienced.com.pl
+  email: bwilczyn+website@gmail.com
+  bio: "IT consultant and entrepreneur with over 10 years of experience in a variety of medium-size line of business applications, mostly in .NET technology."
+  avatar: bio-photo.png
+  twitter: bwilczyn
   google:
     plus: #username
-    analytics: 
+    analytics: UA-18249272-1
     verify: 
     ad-client: 
     ad-slot: 
   bing-verify: 
   github: #username
   stackoverflow: #http://stackoverflow.com/users/123456/username
-  linkedin: #username
+  linkedin: bwilczyn
   xing: #username
   instagram: #username
   lastfm: #username
@@ -51,7 +51,7 @@ owner:
   foursquare: #username
   steam: #username
   dribbble: #username
-  youtube: #username
+  youtube: bwilczyn
   soundcloud: #username
   weibo: #username
   flickr: #username

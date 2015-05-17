@@ -1,0 +1,35 @@
+---
+layout: post
+title: iOS open-source projects on a Github
+date: 2012-01-13 20:01:59.000000000 +01:00
+categories:
+- idevblogaday
+- iPhone
+tags:
+- development
+- git
+- github
+- idevblogaday
+- open source
+- sourcecode
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2012/01/github-logo.png"><img class="alignleft size-full wp-image-551" title="github-logo" src="{{ site.baseurl }}/assets/github-logo.png" alt="github" width="270" height="276" /></a>I got several requests to share a code to my tutorials so that folks can better understand what I blog about. I don't have any problems with that except the fact that some of my posts are based on the actual work that I do and I can't share all the stuff with you. I found some time recently to extract some of the code from my projects and I started sharing it on a <a href="https://github.com/">github</a>. The work is still in progress but I hope to add some more from time to time. In my professional career (.NET) I build few <strong>big</strong> libraries / frameworks that used to help me build more complex solutions easily but now I find this approach a bit awkward. A big library or a framework is all or nothing kind of thing which I don't like.<!--more--></p>
+<p>So instead I started to build small projects (modules) that are one purpose only. If you need something bigger, take few of them and include it in your project, want to keep them up to date - include it as git submodule and pull the updates directly from github. If you want to contribute - fork the project on a github and do send me a pull request.</p>
+<p>So far I only managed to start and include a sample project (not complete yet) that I use to generate a settings-like interface. It has a much nicer API than raw UITableView and it allows you to rapidly build data-driven, table based applications.</p>
+<p>Major release will presumably come in few weeks, but in the meantime you can get an early look on what is going on there:</p>
+<ul>
+<li><strong><a title="ios-datatable" href="https://github.com/xperienced/ios-datatable">ios-datatable</a></strong> is the first small library (I will blog about it in my next <a href="http://idevblogaday.com/">idevblogaday</a> post)</li>
+<li><strong><a href="https://github.com/xperienced/ios-dataview">ios-dataview</a></strong> is a sample project that is using ios-datatable and it includes a reference to it as a submodule.</li>
+</ul>
+<p>Coming soon:</p>
+<ul>
+<li>cocos2d-puzzlemvc</li>
+<li><strong><a href="https://github.com/xperienced/cocos2d-resourceloader">cocos2d-resourceloader</a></strong></li>
+</ul>

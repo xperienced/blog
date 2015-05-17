@@ -1,0 +1,174 @@
+---
+layout: post
+title: How to implement MVC pattern in cocos2d game–part 2
+date: 2010-10-27 21:54:31.000000000 +02:00
+categories:
+- iPhone
+tags:
+- cocos2d
+- development
+- howto
+- iphone
+- mvc
+- patterns
+- separation of concerns
+- sourcecode
+- tutorial
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+  _wp_old_slug: ''
+
+---
+<p>My last post about <a href="http://xperienced.com.pl/blog/?p=243">implementing MVC pattern</a> in cocos2d was definitely lacking some code examples. I must admit – I was writing it on my PC notebook when I was on a business trip and I didn’t have an access to my game source code. This is a follow-up post to the previous one, so I suggest that you read it before this one.</p>
+<h2>Model classes</h2>
+<p>As described previously <em>GameModel</em> class stores information about game world properties, such as current gravity but it also is responsible for building and coordinating all other game models, such as Player and Platforms.</p>
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/10/MVC-in-cocos2d-model.gif"><img class="alignnone size-full wp-image-276" title="MVC in cocos2d - model" src="{{ site.baseurl }}/assets/MVC-in-cocos2d-model.gif" alt="MVC in cocos2d - model" width="478" height="356" /></a></p>
+<p><!--more-->You may notice that all of my model classes implement <em>update</em> method from <em>Updateable</em> protocol. This is to ensure that all of my model class can update its status accordingly during game loop. For example in <em>Player </em>class I need to update player’s position based on its current velocity along x and y axes. In my example I delegate it to my <em>Physics</em> component which is a simple physics engine implementation of my own, but if your game is simpler and you don’t need to separate your physics code you can also do necessary calculations directly in your <em>update</em> method.</p>
+{% highlight objc %}@implementation Player
+- (void)update:(ccTime)dt
+{
+    [_physics updateModel:self dt:dt];
+    // detect collisions with game objects, etc.
+}{% endhighlight %}
+<p><em>GameModel</em> implementation of update method not only updates its own state, but it also needs to delegate update call to <em>Player</em> and <em>Platforms</em>. This method will be later on called by <em>Controller</em> game loop.</p>
+{% highlight objc %}@implementation GameModel
+- (void)update:(ccTime)dt
+{
+    // modify game model properties here
+    // update player
+    [self.player update:dt];
+    // update platforms
+    for (Platform *platform in _platforms) {
+        [platform update:dt];
+    }
+    // ...
+}{% endhighlight %}
+<h2>View and controller classes</h2>
+<p>For each of my game scene I have a separate Controller class which is responsible for handling user interactions, creating views and managing screen flow. Controller also schedules a main game loop from which the model and view is updated.</p>
+{% highlight objc %}@implementation GameplayController
+- (id)init
+{
+    if((self=[super init])) {
+        GameplayView *view = [[GameplayView alloc] initWithDelegate:self];
+	// retain view in controller
+	self.view = view;
+	// release view
+	[view release];
+
+	// init model
+	GameModel *model = [GameModel sharedModel];
+	[model createGameObjects];
+	[model.player run];
+
+	[self scheduleUpdate];
+    }
+}
+
+- (void)update:(ccTime) dt
+{
+    GameModel *model = [GameModel sharedModel];
+
+    if (model.isGameOver) {
+	[[CCDirector sharedDirector] replaceScene:[GameOverController node]];
+    }
+
+    // process model
+    [model update:dt];
+
+    // update view
+    [self.view update:dt];
+}{% endhighlight %}
+<p>View main responsibility is to render a model on screen but also, because of the way cocos2d is built, we need to also delegate touch events to <em>Controller</em> class from <em>CCLayer</em> classes. You should notice that view doesn't directly depend on a Controller. View class calls controller methods via <em>GameViewDelegate</em> protocol that controller implements, that's why we need to pass it as a parameter to init method.</p>
+{% highlight objc %}@implementation GameplayView
+- (id)initWithDelegate:(id)theDelegate
+{
+    if ((self = [super init])) {
+        self.delegate = theDelegate;
+
+	// initialize layers
+	_backgroundLayer = [GameplayBackgroundLayer node];
+	[self.delegate addChild: _backgroundLayer];
+
+	_platformLayer = [GameplayPlatformLayer node];
+	[self.delegate addChild:_platformLayer];
+
+	_playerLayer = [GameplayPlayerLayer node];
+	_playerLayer.delegate = theDelegate;
+	[self.delegate addChild: _playerLayer];
+
+	_hudLayer = [GameplayHudLayer node];
+	_hudLayer.delegate = theDelegate;
+        [self.delegate addChild:_hudLayer];
+    }
+
+    return self;
+}{% endhighlight %}
+<p>// EDIT: I realized I forgot to mention (thanks Zenkimoto) how the implementation of a layer itself look like<br />
+In a layer itself I pretty much do the standard stuff, like creating the sprites, actions, animations etc.</p>
+{% highlight objc %}
+@implementation GameplayPlayerLayer
+- (id)init
+{
+    if ((self = [super init])) {
+        self.isTouchEnabled = YES;
+	self.isAccelerometerEnabled = YES;
+        ResourceManager *resources = [ResourceManager sharedResourceManager];
+		
+	[[CCSpriteFrameCache sharedSpriteFrameCache] addSpriteFramesWithFile:PLAYER_SPRITE_SHEET_PLIST];
+		
+	CCSpriteBatchNode *spriteSheet = [resources playerSpriteSheet];
+	[self addChild:spriteSheet];
+        // ... 
+       // initialize sprites
+       // initialize animations
+}
+{% endhighlight %}
+<p>Sprites on layers are updated in <em>update</em> method that all layers implement. In this method sprites properties are updated from the model in the following way:</p>
+{% highlight objc %}
+- (void)update:(ccTime)dt 
+{
+    // update player sprite based on model
+    GameModel *model = [GameModel sharedModel];
+	
+    _playerSprite.position = ccp((model.player.position.x - model.viewPort.rect.origin.x) * PPM_RATIO,  (model.player.position.y - model.viewPort.rect.origin.y) * PPM_RATIO);
+}
+{% endhighlight %}
+<p>Notice that in order to render sprite position I am using <em>PPM_RATIO</em> that I use to convert meters to points.<br />
+// end EDIT<br />
+Touch events are delegated to controller class via layer's delegate as following:</p>
+{% highlight objc %}@implementation GameplayPlayerLayer
+- (void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    [self.delegate playerBeginJump];
+}{% endhighlight %}
+<p>And here is a complete picture of view and controller classes in a sample class diagram.</p>
+<p><a href="http://xperienced.com.pl/blog/wp-content/uploads/2010/10/MVC-in-cocos2d-controllers.gif"><img class="alignnone size-full wp-image-277" title="MVC in cocos2d - controllers" src="{{ site.baseurl }}/assets/MVC-in-cocos2d-controllers.gif" alt="MVC in cocos2d - controllers" width="536" height="301" /></a></p>
+<h2>Handling model events</h2>
+<p>Open question from my last post was how to handle communication between model and controller classes. The answer is in dotted arrow between model and controller in MVC diagram - we can publish events from Model to which controller subscribes and responds accordingly. For example in Player model we can raise an event that player has just begun jumping:</p>
+{% highlight objc %}@implementation Player
+- (void)beginJump
+{
+    if ([_gameModel isOnGround:self]) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:EVENT_PLAYER_BEGIN_JUMP object:nil];
+    ...
+}{% endhighlight %}
+<p>Controller observes the event, and when it happens it calls appropriate event handler to play sound.</p>
+{% highlight objc %}@implementation GameplayController
+- (id)init
+{
+    if ((self = [super init])) {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onPlayerBeginJumpNotification:) name:EVENT_PLAYER_BEGIN_JUMP object:nil];
+        ...
+    }
+}
+
+- (void)onPlayerBeginJumpNotification:(NSNotification *)notification
+{
+    [[SimpleAudioEngine sharedEngine] playEffect:PLAYER_JUMP_SOUND];
+}{% endhighlight %}
+<h2>That's it</h2>
+<p>It might look a little bit complicated at first and you may be a bit scared with all of those classes that you need to add in order to make it work. But you need to remember that the belief that adding many classes makes the design complicated is a well known anti-pattern known as <a href="http://c2.com/cgi/wiki?FearOfAddingClasses">Fear of Adding Classes</a> so if you are not such a believer I suggest you give this pattern a try - from my experience separating concerns and making different components responsible only for single thing is a principle that makes your design much better and pays off in future.</p>

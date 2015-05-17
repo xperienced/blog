@@ -1,0 +1,142 @@
+---
+layout: post
+title: cocos2d meets MVC – Implementing simple board game part 3
+date: 2011-11-19 00:01:38.000000000 +01:00
+categories:
+- idevblogaday
+- iPhone
+tags:
+- cocos2d
+- development
+- howto
+- idevblogaday
+- iphone
+- mvc
+- separation of concerns
+- sourcecode
+- tutorial
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  has_been_twittered: 'yes'
+
+---
+<p>This is the 3rd part from the series how to build a simple puzzle game using cocos2d and MVC pattern. If you haven't read previous parts I suggest you do it before reading this post:</p>
+<ul>
+<li><a title="cocos2d meets MVC – Implementing simple board game part 1" href="http://xperienced.com.pl/blog/cocos2d-meets-mvc-implementing-board-game-part-1">cocos2d meets MVC part 1</a>,</li>
+<li><a title="cocos2d meets MVC – Implementing simple board game part 2" href="http://xperienced.com.pl/blog/cocos2d-meets-mvc-%e2%80%93-implementing-simple-board-game-part-2">cocos2d meets MVC part 2</a></li>
+</ul>
+<h2>Updating the Model</h2>
+<p>When the user touches the toolbox item and then touches the space on a game board we want that the game piece represented by a toolbox item will be placed on a game board at touch position. In the previous part we already implemented <em>touchedAtRow</em> method in <em>GameBoardViewDelegate.</em> We will extend this protocol and add additional method for handling toolbox item selection.</p>
+<p><!--more--></p>
+{% highlight objc %}@protocol GameBoardViewDelegate
+
+- (void)gameBoard:(GameBoard *)gameBoard touchedAtRow:(int)row column:(int)column;
+- (void)gameBoard:(GameBoard *)gameBoard toolboxItemTouchedAtIndex:(int)index;
+
+@end{% endhighlight %}
+<p>We need to change the implementation of our touches handler, so that we now detect whether we clicked on a toolbox or on a game board.</p>
+{% highlight objc %}- (void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+    UITouch *touch = [touches anyObject];
+    CGPoint point = [self convertTouchToNodeSpace:touch];
+
+    // touched on a game board
+    if (CGRectContainsPoint(gameBoardRectangle, point)) {
+        int row, column;
+        // calculate row and column based on a touch coordinate
+        // ...
+        // call controller
+        [self.delegate gameBoard:self.gameBoard touchedAtRow:row column:column];
+    }
+    // touched on a toolbox
+    else if (CGRectContainsPoint(toolboxRectangle, point)) {
+        int index;
+        // calculate toolbox item index based on a touch coordinate
+        [self.delegate gameBoard:self.gameBoard toolboxItemTouchedAtIndex:index];
+    }
+}{% endhighlight %}
+<p>Handling events on the Controller side is easy, first of all we extend the Model to keep the state of our model and allows us to modify the state based on user touches. Our interface will look something like this (implementation details omitted for clarity):</p>
+{% highlight objc %}@interface GameBoard : NSObject {
+// ...
+}
+
+// ...
+- (void)putGamePiece:(GamePiece *)gamePiece row:(int)row column:(int)column;
+- (GamePiece *)getGamePieceFromToolboxItemAtIndex:(int)index;
+@end{% endhighlight %}
+<p>Then we finish the implementation of <em>GameBoardViewDelegate</em> in GameBoardController and handle our events accordingly.</p>
+{% highlight objc %}- (void)gameBoard:(GameBoard *)aGameBoard toolboxItemTouchedAtIndex:(int)index {
+    // keep the toolbox selection state in the Model
+    gameBoard.selectedToolboxItemIndex = index;
+}
+
+- (void)gameBoard:(GameBoard *)aGameBoard touchedAtRow:(int)row column:(int)column {
+    // if the toolbox item is selected move item from toolbox to game board
+    if (gameBoard.selectedToolboxItemIndex != -1) {
+        GamePiece *gamePiece = [gameBoard getGamePieceFromToolboxItemAtIndex:gameBoard.selectedToolboxItemIndex];
+        [gameBoard putGamePiece:gamePiece row:row column:column];
+    }
+}{% endhighlight %}
+<p>What we achieved so far is that when the user touches on of the toolbox item and then touches the space on a game board the Model gets updated reflecting the desired game board state.</p>
+<h2>Notifying the View about the changes in the Model</h2>
+<p>In order to reflect the state of the Model in the View we need to send some notifications so when the Model gets changed the View will be able to react upon it.</p>
+<p>We do this the same way we notify the Controller about the View changes. We start from the delegate declaration inside the  Model.</p>
+{% highlight objc %}@protocol GameBoardDelegate;
+@interface GameBoard : NSObject
+// ...
+@property (nonatomic, assign)
+id&lt;GameBoardDelegate&gt; delegate;
+// ...
+@end
+
+@protocol GameBoardDelegate
+- (void)gameBoard:(GameBoard *)gameBoard didPutGamePiece:(GamePiece *)gamePiece row:(int)row column:(int)column;
+@end
+
+@implementation GameBoard
+
+- (void)putGamePiece:(GamePiece *)gamePiece row:(int)row column:(int)column {
+    // ...
+    // store game piece
+    // notify that the game piece was put on a gameboard
+    [delegate gameBoard:self didPutGamePiece:gamePiece row:row column:column];
+}
+
+@end{% endhighlight %}
+<p>The last part is the implementation of <em>GameBoardDelegate</em> in the <em>GameBoardView</em> so that when the game piece is put on a game board the View will put a <em>CCSprite</em> at a given position.</p>
+{% highlight objc %}@interface GameBoardView : CCLayer
+// ...
+@end
+
+@implementation GameBoardView
+
+- (id)initWithGameBoard:(GameBoard *)aGameBoard delegate:(id)aDelegate {
+    if ((self = [super init])) {
+        // retain gameboard
+        self.gameBoard = aGameBoard;
+        self.gameBoard.delegate = self;
+
+        // assign delegate
+        self.delegate = aDelegate;
+    }
+}
+
+- (void)gameBoard:(GameBoard *)gameBoard didPutGamePiece:(GamePiece *)gamePiece row:(int)row column:(int)column {
+    // create CCSprite and put it on a game board at corresponding position
+    CCSprite *gamePieceSprite = [CCSprite spriteWithFile:fileName];
+    // ...
+    [self addChild:gamePieceSprite];
+}
+
+@end{% endhighlight %}
+<h2>Summary</h2>
+<p>All the pieces are now connected together. The interaction between the Model, the Controller and the View conforms to MVC paradigm:</p>
+<ul>
+<li>The View handles the touches and notifies the Controller,</li>
+<li>The Controller reacts upon the user touches and updates the Model,</li>
+<li>The model updates its state, does the logic and tells the View that it has been changed,</li>
+<li>The View updates itself based on the current Model state.</li>
+</ul>
+<div>Comments?</div>

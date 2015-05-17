@@ -1,0 +1,115 @@
+---
+layout: post
+title: Persisting model state in Obj-C
+date: 2011-01-03 18:00:35.000000000 +01:00
+categories:
+- iPhone
+tags:
+- development
+- howto
+- serialization
+- sourcecode
+- tutorial
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '2'
+  _aioseop_description: How to persist your model data in Obj-C to file using NSKeyedArchiver
+    and NSKeyedUnarchiver.
+  has_been_twittered: 'yes'
+
+---
+<h2>Serialization</h2>
+<p>One of the benefits of having the <a href="http://xperienced.com.pl/blog/how-to-implement-mvc-pattern-in-cocos2d-gamepart-2">model separated from your view concerns</a> is that you can easily persist your model state to a permanent storage - for example a file or a database. If you want to serialize your model state to a file you can leverage Cocoa archiving which can serialize any object graph and then deserialize it on demand. Unfortunately, when compared to other technologies with automatic serialization built-in, the process is not fully automatic and if you have a very complex model you will need to write a lot of code on your own. Fortunately for most of iPhone games this should not be a big issue - you won't be probably dealing with very complex models and the whole serialization code can be written by hands without much effort.<!--more--></p>
+<h2>NSCoding protocol</h2>
+<p>Model classes should implement <code>NSCoding</code> protocol which contains two methods that needs to be implemented:</p>
+{% highlight objc %}- (void)encodeWithCoder:(NSCoder *)coder;
+- (id)initWithCoder:(NSCoder *)coder;{% endhighlight %}
+<p>The first methods tells the archiver how to serialize your method, the latter one enables retrieving model properties from serialized content.</p>
+<p>For the purposes of this post we will be serializing model that contains game options.</p>
+{% highlight objc %}@interface Options : NSObject {
+}
+@property (nonatomic) BOOL playSound;
+@property (nonatomic) BOOL playMusic;
+
++ (id)sharedOptions;
+- (void)saveState;{% endhighlight %}
+<p>Implementation of <code>NSCoding</code> protocol is quite easy yet a bit tedious if you have more properties than I do:</p>
+{% highlight objc %}@implementation Options
+@synthesize playSound, playMusic;
+
+#pragma mark NSCoding
+- (void)encodeWithCoder:(NSCoder *)coder
+{
+    [coder encodeBool:self.playSound forKey:@"PlaySound"];
+    [coder encodeBool:self.playMusic forKey:@"PlayMusic"];
+}
+-(id) initWithCoder:(NSCoder *)coder {
+    if ((self = [super init])) {
+		self.playSound = [coder decodeBoolForKey:@"PlaySound"];
+		self.playMusic = [coder decodeBoolForKey:@"PlayMusic"];
+	}
+    return self;
+}
+@end{% endhighlight %}
+<p>You need to be very careful to keep the same keys in both methods and you also need to remember that properties returned from the coder should be retained if needed.</p>
+<h2>Serializing and deserializing objects using NSKeyedArchiver and NSKeyedUnarchiver</h2>
+<p>The last step is performing the serialization using archiver classes. Saving state requires the following:</p>
+<ol>
+<li>Creating <code>NSMutableData</code> for storing serialized content,</li>
+<li>Instantiating <code>NSKeyedArchiver</code> with instance of created data,</li>
+<li>Encoding the object to mutable data instance,</li>
+<li>Writing serialized data to file.</li>
+</ol>
+{% highlight objc %}@implementation Options
+- (void)saveState
+{
+	NSMutableData *data = [NSMutableData data];
+	NSKeyedArchiver *archiver = [[NSKeyedArchiver alloc] initForWritingWithMutableData:data];
+
+	[archiver encodeObject:self forKey:OPTIONS_DATA_KEY];
+
+	[archiver finishEncoding];
+	[data writeToFile:[Options getArchivePath] atomically:YES];
+	[archiver release];
+}
+
++(NSString *) getArchivePath
+{
+	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+	NSString *documentsDirectory = [paths objectAtIndex:0];
+	return [documentsDirectory stringByAppendingPathComponent:OPTIONS_DATA_FILE];
+}
+@end{% endhighlight %}
+<p>Deserialization involves the following actions (I implemented it in my <a href="http://xperienced.com.pl/blog/3-ways-to-implement-singleton-pattern-in-objective-c">singleton</a> initialize method so I have my options loaded on demand during the first object access):</p>
+<ol>
+<li>Reading data from contents of previously saved file to <code>NSData</code> instance,</li>
+<li>Instantiating <code>NSKeyedUnarchiver</code> with contents of file,</li>
+<li>Decoding object instance from the unarchiver.</li>
+</ol>
+{% highlight objc %}@implementation Options
+static id _sharedOptions = nil;
+
++ (id)sharedOptions
+{
+	if (_sharedOptions == nil) {
+		NSData *data = [NSData dataWithContentsOfFile:[Options getArchivePath]];
+
+		if (data) {
+			NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingWithData:data];
+			_sharedOptions = [[unarchiver decodeObjectForKey:OPTIONS_DATA_KEY] retain];
+
+			[unarchiver finishDecoding];
+			[unarchiver release];
+		}
+		else {
+			_sharedOptions = [[Options alloc] init];
+		}
+	}
+
+	return _sharedOptions;
+}
+@end{% endhighlight %}
+<h2>Final thoughts</h2>
+<p>Implementing object serializing in Obj-C is quite easy with archivers. But if you compare it to .NET or Java which can do binary serialization of any object graph (even with cycles) automatically without a need for any code you may feel Cocoa could have been better in this regard. That's it for this post, if you have any remarks or comments feel free to share it in comments.</p>
